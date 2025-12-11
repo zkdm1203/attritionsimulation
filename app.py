@@ -12,7 +12,7 @@ from typing import List, Tuple, Optional, Dict, Set
 # Streamlit Page Config
 # ------------------------------
 st.set_page_config(
-    page_title="Leadership Pipeline Digital Twin",
+    page_title="Leadership Pipeline Simulation (Digital Twin–Inspired)",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -198,7 +198,7 @@ def infer_attrition_prob(sub: pd.DataFrame) -> np.ndarray:
     return np.clip(p, 0.02, 0.60)
 
 # ------------------------------
-# Digital Twin Simulation
+# Digital Twin–Inspired Simulation
 # ------------------------------
 @dataclass
 class TwinConfig:
@@ -401,14 +401,45 @@ def static_successor_forecast(d: pd.DataFrame, years:int=5) -> pd.DataFrame:
 # Sidebar controls for Simulation
 # ------------------------------
 st.sidebar.title("⚙️ What-If Controls")
+st.sidebar.caption(
+    "Interactive workforce simulation that reveals dynamic pipeline vulnerabilities "
+    "invisible to static succession planning."
+)
+
 years               = st.sidebar.slider("Years to simulate", 3, 10, 5)
 annual_hire_ic_pct  = st.sidebar.slider("Annual IC External Hiring (%)", 0, 20, 10)
 annual_hire_mid_pct = st.sidebar.slider("Annual Mid External Hiring (%)", 0, 10, 2)
 retire_age          = st.sidebar.slider("Retirement Age", 55, 67, 62)
-promote_bias_mid    = st.sidebar.slider("Promotion Bias @ Mid (− favors URG, + favors majority)", -0.1, 0.1, 0.0, 0.01)
-promote_bias_senior = st.sidebar.slider("Promotion Bias @ Senior (− favors URG, + favors majority)", -0.1, 0.1, 0.0, 0.01)
-diversity_boost     = st.sidebar.slider("Diversity Boost Near Threshold", 0.0, 0.15, 0.05, 0.01)
-upskill_program     = st.sidebar.slider("Upskill Lift to Skills", 0.0, 0.30, 0.15, 0.01)
+
+promote_bias_mid    = st.sidebar.slider(
+    "Promotion Bias @ Mid (− favors URG, + favors majority)",
+    -0.1, 0.1, 0.0, 0.01,
+    help="Negative values simulate correcting bias in favor of underrepresented groups; "
+         "positive values simulate systems that advantage majority talent."
+)
+promote_bias_senior = st.sidebar.slider(
+    "Promotion Bias @ Senior (− favors URG, + favors majority)",
+    -0.1, 0.1, 0.0, 0.01,
+    help="Bias at senior levels is critical for long-term bench strength and board visibility."
+)
+
+diversity_boost     = st.sidebar.slider(
+    "Diversity Boost Near Threshold",
+    0.0, 0.15, 0.05, 0.01,
+    help=(
+        "Simulates targeted interventions for underrepresented groups—such as sponsorship programs, "
+        "structured mentorship, and equitable performance calibration—that research links to higher "
+        "promotion rates."
+    ),
+)
+
+upskill_program     = st.sidebar.slider(
+    "Upskill Lift to Skills",
+    0.0, 0.30, 0.15, 0.01,
+    help="Represents sustained investment in development (leadership academies, stretch assignments, "
+         "coaching) that increases readiness over multiple years."
+)
+
 mid_growth          = st.sidebar.slider("Mid Demand Growth (%)", 0, 10, 2)/100.0
 senior_growth       = st.sidebar.slider("Senior Demand Growth (%)", 0, 10, 2)/100.0
 
@@ -455,16 +486,21 @@ tabs = st.tabs([
     "🤖 Attrition Prediction",
     "🔭 Leadership Gap Forecast",
     "🧠 Skill Shortage Analysis",
-    "🧪 What-If & Digital Twin",
+    "🧪 What-If Simulation (Digital Twin–Inspired)",
     "🚨 Retention Risk Forecast",
     "🌍 Diversity & DEI",
-    "⚖️ Static vs Digital Twin",
-    "🎯 Research Conclusion",
+    "⚖️ Static vs Simulation",
+    "🎯 Research & Methodology",
 ])
 
 # ===== Tab 1: Data Overview =====
 with tabs[0]:
     st.subheader("Dataset Preview & Summary")
+    st.markdown(
+        "This prototype uses a blend of sample HR data and synthetic augmentation to mimic a tech workforce. "
+        "The goal is not to perfectly represent any one company, but to **demonstrate how simulation can make "
+        "succession planning more dynamic and transparent**."
+    )
     st.dataframe(df.head(), use_container_width=True)
     st.write(df.describe(include='all'))
 
@@ -560,15 +596,19 @@ with tabs[1]:
 # ===== Tab 3: Leadership Gap Forecast =====
 with tabs[2]:
     st.subheader("Mid-Level Leadership Gap Over Time")
+    st.caption(
+        "Here we compare how many Mid-level leaders you **need** (demand) versus how many you actually "
+        "have after accounting for attrition, retirements, promotions, and hiring."
+    )
     c = st.columns(2)
     with c[0]:
-        st.write("**Baseline**")
+        st.write("**Baseline (default settings)**")
         fig, ax = plt.subplots()
         ax.plot(tbl_baseline["year"], tbl_baseline["mid_gap"], marker="o")
         ax.set_xlabel("Year"); ax.set_ylabel("Gap (Required − Headcount)"); ax.grid(True)
         st.pyplot(fig)
     with c[1]:
-        st.write("**Your Scenario**")
+        st.write("**Your Scenario (sidebar controls)**")
         fig, ax = plt.subplots()
         ax.plot(tbl_scn["year"], tbl_scn["mid_gap"], marker="o")
         ax.set_xlabel("Year"); ax.set_ylabel("Gap (Required − Headcount)"); ax.grid(True)
@@ -577,6 +617,10 @@ with tabs[2]:
 # ===== Tab 4: Skill Shortage Analysis =====
 with tabs[3]:
     st.subheader("Mid & Senior Skill Coverage")
+    st.caption(
+        "Skill coverage approximates whether you have enough people with the capabilities you care about "
+        "(Mid: people & project management; Senior: product, strategy, AI governance)."
+    )
     c = st.columns(2)
     with c[0]:
         st.write("**Mid Skill Coverage**")
@@ -593,28 +637,40 @@ with tabs[3]:
         ax.set_ylim(0,1); ax.set_xlabel("Year"); ax.set_ylabel("Share ≥ threshold"); ax.grid(True); ax.legend()
         st.pyplot(fig)
 
-# ===== Tab 5: What-If & Digital Twin =====
+# ===== Tab 5: What-If Simulation (Digital Twin–Inspired) =====
 with tabs[4]:
-    st.subheader("Simulation Results (Adjust in Sidebar)")
+    st.subheader("What-If Simulation (Digital Twin–Inspired)")
+    st.markdown(
+        "This page treats your workforce as a **simulated system**: each year, people leave, retire, get promoted, "
+        "and new hires join. While it is inspired by digital twin principles, it is **not yet a full digital twin** "
+        "because it does not stream live HRIS data."
+    )
     c = st.columns(2)
     with c[0]:
-        st.write("**Mid Gap**")
+        st.write("**Mid Gap (Your Scenario)**")
         fig, ax = plt.subplots()
         ax.plot(tbl_scn["year"], tbl_scn["mid_gap"], marker="o")
         ax.set_xlabel("Year"); ax.set_ylabel("Gap"); ax.grid(True)
         st.pyplot(fig)
     with c[1]:
-        st.write("**Senior Gap**")
+        st.write("**Senior Gap (Your Scenario)**")
         fig, ax = plt.subplots()
         ax.plot(tbl_scn["year"], tbl_scn["senior_gap"], marker="o")
         ax.set_xlabel("Year"); ax.set_ylabel("Gap"); ax.grid(True)
         st.pyplot(fig)
 
-    st.caption("Tip: Use the sidebar to test early retirements, diversity boosts, upskilling, or hiring changes.")
+    st.caption(
+        "Use the sidebar to test earlier retirements, different hiring strategies, stronger upskilling, or "
+        "DEI interventions — and see how your future bench strength changes."
+    )
 
 # ===== Tab 6: Retention Risk Forecast =====
 with tabs[5]:
     st.subheader("Mid-Level Attrition Probability Over Time")
+    st.caption(
+        "High mid-level attrition is one of the main reasons organizations experience sudden leadership gaps. "
+        "This view shows how average Mid-level attrition risk evolves under different scenarios."
+    )
     fig, ax = plt.subplots()
     ax.plot(tbl_baseline["year"], tbl_baseline["avg_attrition_prob_mid"], marker="o", label="Baseline")
     ax.plot(tbl_scn["year"], tbl_scn["avg_attrition_prob_mid"], marker="o", label="Scenario")
@@ -625,6 +681,17 @@ with tabs[5]:
 # ===== Tab 7: Diversity & DEI =====
 with tabs[6]:
     st.subheader("Diversity in Leadership")
+    st.markdown(
+        """
+This view tracks **underrepresented groups (URG)** in leadership — defined here as women, non-binary talent,
+and employees who identify as Black, Hispanic, or Other.
+
+The `Diversity Boost Near Threshold` control in the sidebar simulates **structural interventions** highlighted in
+the DEI literature, such as more equitable performance calibration, access to sponsorship, and transparent promotion
+criteria. These interventions increase the likelihood that URG talent just below the readiness threshold actually moves
+into leadership roles instead of leaking out of the pipeline.
+        """
+    )
     c = st.columns(2)
     with c[0]:
         st.write("**Mid-Level Diversity Share**")
@@ -643,17 +710,96 @@ with tabs[6]:
         ax.grid(True); ax.legend()
         st.pyplot(fig)
 
-# ===== Tab 8: Static vs Digital Twin =====
+# ===== Tab 8: Static vs Simulation =====
 with tabs[7]:
-    st.subheader("Static Succession (No Dynamics)")
+    st.subheader("Static Succession Planning (No Dynamics)")
+    st.markdown(
+        "Static planning assumes the current list of 'ready now' successors is stable. "
+        "It does **not** account for future attrition, retirements, or promotion timing."
+    )
     st.dataframe(static_tbl, use_container_width=True)
-    st.subheader("Digital Twin — Your Scenario")
+
+    st.subheader("Dynamic Simulation (Digital Twin–Inspired)")
+    st.markdown(
+        "The simulation, by contrast, updates the pipeline year by year as people leave, move up, or enter. "
+        "This is closer to how the real workforce behaves — and highlights why static lists often **overestimate** "
+        "bench strength."
+    )
     st.dataframe(tbl_scn, use_container_width=True)
 
-# ===== Tab 9: Research Conclusion =====
+    st.caption(
+        "Example scenario: A company may list five 'ready now' successors for a senior role. Once you factor in "
+        "Mid-level attrition and promotion velocity over several years, the simulation can reveal that only two of "
+        "them are still around and ready when the role actually opens — a 60% shortfall that static planning hides."
+    )
+
+# ===== Tab 9: Research & Methodology =====
 with tabs[8]:
-    st.subheader("Research Question")
-    st.markdown("**Can digital twin simulations more accurately predict mid-level leadership gaps in the tech industry compared to traditional succession planning?**")
+    st.subheader("Problem & Research Question")
+    st.markdown(
+        """
+Organizations routinely invest in succession planning, yet many rate its effectiveness around **5.5/10**.
+One reason: most tools are **static** — they cannot show how attrition, retirements, promotions, and hiring
+interact over time to create surprise leadership gaps.
+
+**Research question:**  
+Can an interactive workforce simulation — inspired by digital twin principles — reveal mid-level leadership
+gaps and pipeline vulnerabilities that static succession planning misses?
+        """
+    )
+
+    st.subheader("What This Tool Is (and Isn’t)")
+    st.markdown(
+        """
+- ✅ **Is:** An interactive workforce **simulation** that models attrition, retirements, promotions, hiring,
+  skills, and DEI levers over a multi-year horizon.  
+- ✅ **Is:** A way to make abstract concepts like “bench strength” and “pipeline leakage” visible and measurable.  
+- ⚠️ **Is not yet:** A fully-fledged **digital twin**, because it does not continuously ingest live HRIS data or
+  update in real time.  
+- 🎯 **Design intent:** Use simulation modeling to demonstrate the value of **dynamic workforce forecasting** for
+  leadership and succession planning.
+        """
+    )
+
+    st.subheader("Methodology & Key Assumptions (Summary)")
+    st.markdown(
+        f"""
+- **Data foundation:** Sample HR-like dataset with synthetic augmentation to approximate a tech workforce.  
+- **Role structure:** Workforce split into three levels — IC, Mid, Senior — via the `{COL_ROLE}` / `role_level`
+  mapping.  
+- **Attrition modeling:** Uses a trained attrition model when available; otherwise a calibrated heuristic that
+  varies by role, tenure, and performance.  
+- **Readiness rules:**  
+  - IC → Mid readiness combines performance, tenure, and **Mid skill score** (people & project management, product).  
+  - Mid → Senior readiness combines performance, tenure, and **Senior skill score** (product, strategy, AI governance).  
+- **Demand growth:** Mid and Senior role demand grows by configurable annual percentages to mirror business growth.  
+- **Retirement:** Employees at or above a configurable retirement age exit the system in each simulated year.  
+- **DEI lens:** URG talent is defined as women, non-binary employees, and employees who identify as Black, Hispanic,
+  or Other. The diversity boost and bias sliders approximate structural barriers vs targeted interventions.  
+- **Time step:** The model runs in **annual** steps; within each year it applies attrition → retirement → promotions
+  → hiring → aging.
+        """
+    )
+
+    st.subheader("Validation & Credibility (Prototype Level)")
+    st.markdown(
+        """
+This is a **proof-of-concept**, not a production HR product, so validation is framed accordingly:
+
+1. **Internal consistency checks**  
+   - Extreme “what-if” settings behave as expected (e.g., zero hiring + early retirements quickly produce large gaps).  
+   - Increasing upskilling and reducing bias improves readiness and diversity over time, not just in a single year.
+
+2. **Scenario-based evidence vs static planning**  
+   - Static succession counts remain flat over time, even as attrition and retirements should logically reduce the pool.  
+   - The simulation shows how, under realistic attrition rates, the supply of truly available successors can fall well
+     below what static lists suggest.
+
+3. **Path to real-world validation**  
+   - In a real deployment, this approach would be validated against **historical workforce data** and/or structured
+     feedback from HR practitioners (e.g., “Does this surface pipeline risks that your current tools miss?”).
+        """
+    )
 
     def quick_findings(tbl_base: pd.DataFrame, tbl_scn: pd.DataFrame) -> Dict[str,str]:
         out = {}
@@ -671,6 +817,7 @@ with tabs[8]:
         out["risk"] = f"Avg Mid attrition risk — Baseline vs Scenario: {r_base:.2f} vs {r_scn:.2f}."
         return out
 
+    st.subheader("Quantitative Comparison: Baseline vs Your Scenario")
     kf = quick_findings(tbl_baseline, tbl_scn)
     st.markdown(
         f"""
@@ -680,6 +827,26 @@ with tabs[8]:
 - **Retention Risk:** {kf['risk']}  
 """
     )
+
+    st.subheader("Limitations & Future Work")
+    st.markdown(
+        """
+- **Synthetic / sample data:** Results are illustrative, not prescriptions for any specific company.  
+- **No role obsolescence modeling (yet):** Although the literature highlights automation risk (e.g., WEF 2020), this
+  version does not reduce demand for roles that are likely to be automated.  
+  - Future iteration: Add a **“Role Automation Risk”** parameter per role family and integrate external sources such
+    as **O*NET automation probability scores** to gradually reduce demand for high-risk roles.  
+- **No live HRIS integration:** A true digital twin would pull real data continuously from HR systems and learn from
+  actual outcomes.  
+- **Calibration required:** Each organization would need to calibrate attrition probabilities, readiness thresholds,
+  and promotion rules to its own culture and labor market reality.
+        """
+    )
+
     st.success(
-        "Conclusion: **Yes.** The digital twin predicts mid-level leadership gaps more accurately than static succession planning by modeling attrition, retirement, promotions, external hiring, and upskilling over time — and by enabling what-if testing of policies."
+        "Conclusion: This interactive workforce simulation surfaces mid-level leadership gaps, skill bottlenecks, "
+        "and diversity trade-offs that static succession lists cannot show, by modeling attrition, retirements, "
+        "promotions, external hiring, and upskilling over time. It is **not** yet a full digital twin, but it is "
+        "**digital-twin inspired** and demonstrates how dynamic workforce forecasting can make succession planning "
+        "more honest and actionable."
     )
